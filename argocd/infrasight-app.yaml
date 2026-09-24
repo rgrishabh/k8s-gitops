@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: infrasight
+  namespace: argocd
+  # No resources-finalizer: deleting this Application orphans the resources
+  # rather than cascade-deleting them, which keeps the postgres PVC safe.
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/rgrishabh/k8s-gitops.git
+    targetRevision: HEAD
+    path: apps/infrasight/overlays/prod
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: infrasight
+  syncPolicy:
+    # Automated, because this is the CD half of the pipeline: Jenkins commits a
+    # new image tag and Argo CD rolls it out without anyone clicking Sync.
+    automated:
+      prune: false      # never delete on removal-from-git; protects the PVC
+      selfHeal: true    # revert manual kubectl drift back to git
+    syncOptions:
+      - CreateNamespace=true
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 3
+      backoff: { duration: 15s, factor: 2, maxDuration: 3m }
