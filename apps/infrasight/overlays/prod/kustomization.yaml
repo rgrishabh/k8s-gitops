@@ -1,0 +1,24 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Production overlay: main branch -> namespace `infrasight`,
+# published at https://infrasight.rgrishabh.in via host nginx -> NodePort 32010.
+namespace: infrasight
+
+resources:
+  - ../../base
+  - namespace.yaml
+
+patches:
+  - path: frontend-nodeport.yaml
+
+# Jenkins rewrites newTag here on every successful main build; Argo CD then
+# syncs the change. This block is the deploy interface between CI and CD --
+# nothing else in the pipeline touches the cluster.
+images:
+  - name: infrasight/backend
+    newName: 192.168.49.2:32005/infrasight/backend
+    newTag: b05f475
+  - name: infrasight/frontend
+    newName: 192.168.49.2:32005/infrasight/frontend
+    newTag: b05f475

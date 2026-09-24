@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: { name: postgres-data }
+spec:
+  accessModes: [ReadWriteOnce]
+  resources: { requests: { storage: 5Gi } }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: postgres }
+spec:
+  replicas: 1
+  strategy: { type: Recreate }        # RWO volume: never two pods at once
+  selector: { matchLabels: { app: postgres } }
+  template:
+    metadata: { labels: { app: postgres } }
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          args: ["postgres","-c","max_connections=100","-c","shared_buffers=128MB","-c","effective_cache_size=384MB","-c","work_mem=4MB","-c","log_min_duration_statement=1000"]
+          env:
+            - { name: POSTGRES_DB,   value: infrasight }
+            - { name: POSTGRES_USER, value: infrasight }
+            - { name: POSTGRES_PASSWORD, valueFrom: { secretKeyRef: { name: infrasight-secrets, key: POSTGRES_PASSWORD } } }
+            - { name: POSTGRES_INITDB_ARGS, value: "--encoding=UTF8 --locale=C" }
+            - { name: PGDATA, value: /var/lib/postgresql/data/pgdata }
+          ports: [{ containerPort: 5432 }]
+          volumeMounts: [{ name: data, mountPath: /var/lib/postgresql/data }]
+          readinessProbe:
+            exec: { command: ["sh","-c","pg_isready -U infrasight -d infrasight"] }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 50m,  memory: 192Mi }
+            limits:   { cpu: 1,    memory: 640Mi }
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: postgres-data }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: postgres }
+spec:
+  selector: { app: postgres }
+  ports: [{ port: 5432, targetPort: 5432 }]

@@ -37,3 +37,20 @@ would destroy `JENKINS_HOME`.
 Manual sync only — no `automated`, no `selfHeal`. `Prune=false`. No
 `resources-finalizer`, so deleting an Application orphans resources rather than
 cascade-deleting them.
+
+## InfraSight (apps/infrasight)
+
+Kustomize base plus a `prod` overlay. `main` deploys to namespace `infrasight`
+and is published at `https://infrasight.rgrishabh.in`.
+
+The `images:` block in `overlays/prod/kustomization.yaml` is the interface
+between CI and CD: Jenkins rewrites `newTag` after a successful build, commits,
+and Argo CD syncs the result. Nothing in the pipeline touches the cluster
+directly.
+
+`infrasight-secrets` (POSTGRES_PASSWORD, JWT_SECRET, ADMIN_PASSWORD) is created
+out-of-band with kubectl and is deliberately absent from this repo.
+
+Two optional features are disabled in `base/configmap.yaml`: Tor vantage points
+and Chromium screenshots. Both are optional by the application's own design and
+both are the likeliest way to exhaust a 7.5 GB single node.

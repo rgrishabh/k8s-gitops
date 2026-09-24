@@ -1,0 +1,30 @@
+# Non-secret configuration only. Credentials live in the `infrasight-secrets`
+# Secret, which is created out-of-band with kubectl and deliberately NOT in git.
+apiVersion: v1
+kind: ConfigMap
+metadata: { name: infrasight-config }
+data:
+  APP_ENV: "production"
+  DEBUG: "false"
+  LOG_LEVEL: "INFO"
+  LOG_FORMAT: "json"
+  API_WORKERS: "2"
+  # Empty: the bundled frontend nginx is the only thing in front of the API.
+  ALLOWED_HOSTS: ""
+  CORS_ORIGINS: ""
+  REDIS_URL: "redis://redis:6379/0"
+  # Vantage points need three Tor containers (~120MB) and screenshots need
+  # Chromium (gigabytes under load). Both are optional by the app's own design
+  # and are off on this 7.5GB single node. Turn them on with more headroom.
+  VANTAGE_ENABLED: "false"
+  VANTAGE_POINTS: ""
+  SCREENSHOT_ENABLED: "false"
+  WORKER_ENABLED: "true"
+  WORKER_CONCURRENCY: "20"
+  DB_POOL_SIZE: "5"
+  DB_MAX_OVERFLOW: "5"
+  SECURE_COOKIES: "true"
+  HSTS_ENABLED: "true"
+  ADMIN_USERNAME: "rishabh"
+  ADMIN_EMAIL: "admin@rgrishabh.in"
+  ADMIN_FORCE_PASSWORD_CHANGE: "true"

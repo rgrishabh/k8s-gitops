@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: backend }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: backend } }
+  template:
+    metadata: { labels: { app: backend } }
+    spec:
+      containers:
+        - name: backend
+          image: infrasight/backend
+          imagePullPolicy: IfNotPresent
+          args: ["api"]               # entrypoint role; "api" also runs migrations
+          envFrom:
+            - configMapRef: { name: infrasight-config }
+            - secretRef:    { name: infrasight-secrets }
+          env:
+            - name: DATABASE_URL
+              value: postgresql+asyncpg://infrasight:$(POSTGRES_PASSWORD)@postgres:5432/infrasight
+          ports: [{ containerPort: 8000 }]
+          readinessProbe:
+            httpGet: { path: /live, port: 8000 }
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 30      # first start applies 20 alembic migrations
+          livenessProbe:
+            httpGet: { path: /live, port: 8000 }
+            initialDelaySeconds: 120
+            periodSeconds: 30
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits:   { cpu: 1,    memory: 768Mi }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: backend }         # name is load-bearing: frontend nginx has
+spec:                               # `upstream infrasight_api { server backend:8000; }`
+  selector: { app: backend }
+  ports: [{ port: 8000, targetPort: 8000 }]
