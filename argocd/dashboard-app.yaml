@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dashboard
+  namespace: argocd
+  # NOTE: deliberately NO resources-finalizer.argocd.argoproj.io finalizer.
+  # Without it, deleting this Application orphans the live resources instead of
+  # cascade-deleting them. That matters because the jenkins PVC binds a PV with
+  # reclaimPolicy=Delete -- a cascading delete would destroy JENKINS_HOME.
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/rgrishabh/k8s-gitops.git
+    targetRevision: HEAD
+    path: apps/dashboard
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kubernetes-dashboard
+  syncPolicy:
+    # Manual sync only. No automated/selfHeal, so Argo CD will never change a
+    # running service without you clicking Sync.
+    syncOptions:
+      - Prune=false                 # never delete resources not in git
+      - CreateNamespace=false       # namespaces already exist
+      - RespectIgnoreDifferences=true

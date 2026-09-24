@@ -1,0 +1,6 @@
+# never commit key material or secrets
+*.key
+*.pem
+id_*
+.deploykey*
+**/secret-*.yaml

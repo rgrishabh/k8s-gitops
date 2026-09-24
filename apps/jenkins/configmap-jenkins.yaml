@@ -1,0 +1,33 @@
+apiVersion: v1
+data:
+  apply_config.sh: "set -e\necho \"disable Setup Wizard\"\n# Prevent Setup Wizard\
+    \ when JCasC is enabled\necho $JENKINS_VERSION > /var/jenkins_home/jenkins.install.UpgradeWizard.state\n\
+    echo $JENKINS_VERSION > /var/jenkins_home/jenkins.install.InstallUtil.lastExecVersion\n\
+    echo \"download plugins\"\n# Install missing plugins\ncp /var/jenkins_config/plugins.txt\
+    \ /var/jenkins_home;\nrm -rf /usr/share/jenkins/ref/plugins/*.lock\nversion ()\
+    \ { echo \"$@\" | awk -F. '{ printf(\"%d%03d%03d%03d\\n\", $1,$2,$3,$4); }'; }\n\
+    if [ -f \"/usr/share/jenkins/jenkins.war\" ] && [ -n \"$(command -v jenkins-plugin-cli)\"\
+    \ 2>/dev/null ] && [ $(version $(jenkins-plugin-cli --version)) -ge $(version\
+    \ \"2.1.1\") ]; then\n  jenkins-plugin-cli --verbose --war \"/usr/share/jenkins/jenkins.war\"\
+    \ --plugin-file \"/var/jenkins_home/plugins.txt\" --latest true;\nelse\n  /usr/local/bin/install-plugins.sh\
+    \ `echo $(cat /var/jenkins_home/plugins.txt)`;\nfi\necho \"copy plugins to shared\
+    \ volume\"\n# Copy plugins to shared volume\nyes n | cp -i /usr/share/jenkins/ref/plugins/*\
+    \ /var/jenkins_plugins/ || true;\necho \"finished initialization\""
+  plugins.txt: 'kubernetes:4557.ve746270f672f
+
+    workflow-aggregator:608.v67378e9d3db_1
+
+    git:5.10.1
+
+    configuration-as-code:2121.v86fe99d4b_b_a_b_'
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/component: jenkins-controller
+    app.kubernetes.io/instance: jenkins
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: jenkins
+    helm.sh/chart: jenkins-5.9.64
+  name: jenkins
+  namespace: jenkins
+
