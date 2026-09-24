@@ -9,8 +9,19 @@ resources:
   - ../../base
   - namespace.yaml
 
+# JSON 6902, not a strategic-merge patch: merging a partial Service.spec.ports
+# entry silently drops nodePort, leaving Kubernetes to auto-assign a random one.
 patches:
-  - path: frontend-nodeport.yaml
+  - target:
+      kind: Service
+      name: frontend
+    patch: |-
+      - op: replace
+        path: /spec/type
+        value: NodePort
+      - op: add
+        path: /spec/ports/0/nodePort
+        value: 32010
 
 # Jenkins rewrites newTag here on every successful main build; Argo CD then
 # syncs the change. This block is the deploy interface between CI and CD --
