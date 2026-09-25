@@ -23,10 +23,18 @@ spec:
               value: postgresql+asyncpg://infrasight:$(POSTGRES_PASSWORD)@postgres:5432/infrasight
             - name: WORKER_REGION
               valueFrom: { fieldRef: { fieldPath: spec.nodeName } }
-          livenessProbe:
-            exec: { command: ["sh","-c","pgrep -f monitor_worker > /dev/null"] }
-            initialDelaySeconds: 60
-            periodSeconds: 30
+          # Deliberately NO liveness probe.
+          #
+          # The compose file healthchecks this with `pgrep -f monitor_worker`,
+          # but procps is not installed in python:3.12-slim, so pgrep exits 127
+          # and the check can only ever fail. In Compose that merely marks the
+          # container unhealthy; as a Kubernetes liveness probe it KILLS it --
+          # the worker was being SIGTERMed every 150s (60s initialDelay + 3x30s)
+          # and had racked up 19 restarts.
+          #
+          # None is needed: the worker is PID 1 under tini, so if it dies the
+          # container exits and Kubernetes restarts it anyway. Real worker
+          # liveness is the heartbeat rows the API reports via /health.
           resources:
             requests: { cpu: 100m, memory: 256Mi }
             limits:   { cpu: 1,    memory: 768Mi }
