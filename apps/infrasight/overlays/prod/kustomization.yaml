@@ -29,7 +29,7 @@ patches:
 images:
   - name: infrasight/backend
     newName: 192.168.49.2:32005/infrasight/backend
-    newTag: b05f475
+    newTag: 8ccf4fb
   - name: infrasight/frontend
     newName: 192.168.49.2:32005/infrasight/frontend
-    newTag: b05f475
+    newTag: 8ccf4fb
